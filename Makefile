@@ -1,8 +1,8 @@
 build:
 	@go build -o bin/thoughtHub_Backend cmd/main.go
 
-test
+test:
 	@go test -v ./...
 
-run:
+run: build
 	@./bin/thoughtHub_Backend
