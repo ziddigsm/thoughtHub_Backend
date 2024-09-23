@@ -1,22 +1,19 @@
 package users
 
 import (
-	"fmt"
-	"net/http"
 	"github.com/gorilla/mux"
+	"gorm.io/gorm"
 )
 
 type Handler struct {
+	db *gorm.DB
 }
 
-func NewHandler() *Handler {
-	return &Handler{}
+func NewHandler(db *gorm.DB) *Handler {
+	return &Handler{db: db}
 }
 
 func (h *Handler) InitializeRoutes(router *mux.Router) {
-	router.HandleFunc("/users", h.GetUsers).Methods("GET")
-}
-
-func (h *Handler) GetUsers(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("GET /users API Successfully hit")
+	router.HandleFunc("/get_users", h.GetUsers).Methods("GET")
+	router.HandleFunc("/create_user", h.SaveUser).Methods("POST")
 }
