@@ -1,17 +1,18 @@
 package db
 
 import (
-	"database/sql"
 	"fmt"
 	"os"
 
 	_ "github.com/lib/pq"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 
 	"github.com/joho/godotenv"
 )
 
-func DbConnection() (*sql.DB, error) {
-	
+func DbConnection() (*gorm.DB, error) {
+
 	err := godotenv.Load("./.env")
 	if err != nil {
 		panic("Error loading .env file")
@@ -19,17 +20,11 @@ func DbConnection() (*sql.DB, error) {
 
 	connectionString := os.Getenv("DB_CONNECTION_STRING")
 
-	db, err := sql.Open("postgres", connectionString)
+	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
 
 	if err != nil {
-		return nil, fmt.Errorf("Error opening database connection: %v", err)
+		return nil, fmt.Errorf("error opening database connection: %v", err)
 	}
 
-	err = db.Ping()
-	if err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
-	}
-
-	fmt.Println("Connection Successful")
 	return db, nil
 }
