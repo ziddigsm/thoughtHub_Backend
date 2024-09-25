@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/ziddigsm/thoughtHub_Backend/service/users"
 	"gorm.io/gorm"
@@ -26,6 +27,11 @@ func (s *APIServer) Run() error {
 	path := router.PathPrefix("/api/v1").Subrouter()
 	userHandler := users.NewHandler(s.db)
 	userHandler.InitializeRoutes(path)
+	enableCors := handlers.CORS(
+		handlers.AllowedOrigins([]string {"http://localhost:3000"}),
+		handlers.AllowedMethods([]string {"GET", "POST", "PUT", "DELETE"}),
+		handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
+	)
 	fmt.Println("Server is running on port", s.address)
-	return http.ListenAndServe(s.address, router)
+	return http.ListenAndServe(s.address, enableCors(router))
 }
