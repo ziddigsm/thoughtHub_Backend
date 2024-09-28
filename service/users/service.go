@@ -14,12 +14,12 @@ func (h *Handler) GetUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) SaveUser(w http.ResponseWriter, r *http.Request) {
-	var reqBody types.User
+	var reqBody types.Users
 	if err := utils.ParseRequest(r, &reqBody); err != nil {
 		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("invalid request body: %v", err))
 		return
 	}
-	var user types.User
+	var user types.Users
 	if err := h.db.Where("mail = ?", reqBody.Mail).First(&user).Error; err == nil {
 		response := map[string] interface{}{
 			"message": "User already exists",

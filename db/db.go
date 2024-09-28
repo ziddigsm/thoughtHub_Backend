@@ -7,6 +7,7 @@ import (
 	_ "github.com/lib/pq"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 
 	"github.com/joho/godotenv"
 )
@@ -20,7 +21,11 @@ func DbConnection() (*gorm.DB, error) {
 
 	connectionString := os.Getenv("DB_CONNECTION_STRING")
 
-	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{
+		NamingStrategy: schema.NamingStrategy{
+			SingularTable: true,
+		},
+	})
 
 	if err != nil {
 		return nil, fmt.Errorf("error opening database connection: %v", err)
