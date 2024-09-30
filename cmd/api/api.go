@@ -6,6 +6,7 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/ziddigsm/thoughtHub_Backend/service/blog"
 	"github.com/ziddigsm/thoughtHub_Backend/service/menu"
 	"github.com/ziddigsm/thoughtHub_Backend/service/users"
 	"gorm.io/gorm"
@@ -30,6 +31,8 @@ func (s *APIServer) Run() error {
 	userHandler.InitializeRoutes(path)
 	menuHandler := menu.NewHandler(s.db)
 	menuHandler.InitializeRoutes(path)
+	blogHandler := blog.NewHandler(s.db)
+	blogHandler.InitializeRoutes(path)
 	enableCors := handlers.CORS(
 		handlers.AllowedOrigins([]string {"http://localhost:3000"}),
 		handlers.AllowedMethods([]string {"GET", "POST", "PUT", "DELETE"}),
