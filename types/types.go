@@ -55,13 +55,18 @@ type Likes struct {
 }
 
 type DetailedBlog struct {
-	BlogData Blogs `json:"blog_data"`
+	BlogData BlogWithName `json:"blog_data"`
 	Likes int `gorm:"default:0" json:"likes"`
 	Comments []DetailedComments `gorm:"foreignKey:BlogID" json:"comments"`
 }
 
 type DetailedComments struct {
-	Comments Comments `json:"comments"`
+	Comments
 	Name string `json:"name"`
 	Mail string `json:"mail"`
+}
+
+type BlogWithName struct {
+	Blogs 
+	Name string `json:"name"`
 }

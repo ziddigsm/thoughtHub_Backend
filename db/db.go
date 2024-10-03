@@ -2,14 +2,16 @@ package db
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"time"
 
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
-
-	"github.com/joho/godotenv"
 )
 
 func DbConnection() (*gorm.DB, error) {
@@ -20,8 +22,14 @@ func DbConnection() (*gorm.DB, error) {
 	}
 
 	connectionString := os.Getenv("DB_CONNECTION_STRING")
-
+	logger := logger.New(
+		log.New(os.Stdout, "\r\n", log.LstdFlags),
+		logger.Config{
+			SlowThreshold: time.Duration(-1),
+		},
+	)
 	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{
+		Logger: logger,
 		NamingStrategy: schema.NamingStrategy{
 			SingularTable: true,
 		},
