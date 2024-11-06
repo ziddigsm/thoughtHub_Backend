@@ -5,11 +5,11 @@ import (
 )
 
 type Users struct {
-	ID        int       `gorm:"primaryKey;autoIncrement" json:"-"`
+	ID        int       `gorm:"primaryKey;autoIncrement" json:"id"`
 	Mail      string    `gorm:"size:255;unique;not null" json:"mail"`
 	Name      string    `gorm:"size:100;not null" json:"name"`
 	Username  string    `gorm:"size:20" json:"username,omitempty"`
-	IsActive  bool      `gorm:"default:true" json:"-"`
+	IsActive  bool      `gorm:"default:true" json:"is_active"`
 	CreatedOn time.Time `gorm:"autoCreateTime" json:"created_on"`
 	UpdatedOn time.Time `gorm:"autoUpdateTime" json:"updated_on"`
 }
