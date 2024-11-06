@@ -146,7 +146,7 @@ func (h *Handler) SaveAbout(w http.ResponseWriter, r *http.Request) {
 	 }
 	i:= 0
 	 for key := range userType.NumField() {
-		if userType.Field(key).Interface() != "" && (userType.Type().Field(key).Name == "Name" || userType.Type().Field(key).Name == "Username" ){
+		if  (userType.Type().Field(key).Name == "Name" || userType.Type().Field(key).Name == "Username" ){
 			fieldsForUpdate[userType.Type().Field(key).Name] = userType.Field(key).Interface()
 			i++
 			if (userType.Type().Field(key).Name == "Name") {
