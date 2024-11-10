@@ -3,6 +3,10 @@ package users
 import (
 	"fmt"
 	"net/http"
+	"reflect"
+	"strconv"
+	"strings"
+
 	"github.com/ziddigsm/thoughtHub_Backend/types"
 	"github.com/ziddigsm/thoughtHub_Backend/utils"
 	"gorm.io/gorm"
@@ -126,4 +130,56 @@ func extractSocialEntry(socialEntry map[string]interface{}) (uint, string, strin
     }
 
     return id, socialMedia, socialURL, nil
+}
+
+func (h *Handler) SaveAbout(w http.ResponseWriter, r *http.Request) {
+	var reqBody types.Users 
+	if err := utils.ParseRequest(r, &reqBody); err != nil {
+		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("invalid request body: %v", err))
+		return
+	}
+	 userType := reflect.ValueOf(reqBody)
+	 fieldsForUpdate := make(map[string]interface{})
+	 res := map[string]interface{}{
+		"message": "User updated successfully",
+		"user_id": reqBody.ID,
+	 }
+	i:= 0
+	 for key := range userType.NumField() {
+		if  (userType.Type().Field(key).Name == "Name" || userType.Type().Field(key).Name == "Username" ){
+			fieldsForUpdate[userType.Type().Field(key).Name] = userType.Field(key).Interface()
+			i++
+			if (userType.Type().Field(key).Name == "Name") {
+				res[strings.ToLower(userType.Type().Field(key).Name)] = reqBody.Name
+			} else {
+				res[strings.ToLower(userType.Type().Field(key).Name)] = reqBody.Username
+			}
+		}
+		if i == 2 {
+			break
+		}
+	 }
+	if err := h.db.Model(&reqBody).Where("id = ? and is_active = true", reqBody.ID).Updates(fieldsForUpdate).Error; err != nil {
+		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to update user: %v", err))
+		return
+	}
+	utils.SuccessResponse(w, http.StatusOK, res)
+}
+
+func (h *Handler) DeleteUser(w http.ResponseWriter, r * http.Request) {
+	query := r.URL.Query()
+    id, err := strconv.Atoi(query.Get("id"))
+    if err != nil {
+        utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("invalid user ID: %v", err))
+        return
+    }
+	if err := h.db.Model(&types.Users{}).Where("id = ? and is_active = true", id).Update("is_active", false).Error; err != nil {
+		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to delete user: %v", err))
+		return
+	}
+	res := map[string]interface{}{
+		"message": "User deleted successfully",
+		"user_id": query.Get("id"),
+	}
+	utils.SuccessResponse(w, http.StatusOK, res)
 }
