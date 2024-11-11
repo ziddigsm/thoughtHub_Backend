@@ -71,39 +71,67 @@ func (h *Handler) GetBlogs(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	var blogs []types.BlogWithName
 	var responseblogs []types.DetailedBlog
-	
+	response := map[string]interface{}{}
+	response["blogs"] = &responseblogs
+	var blogCount int64
 	userId, err := strconv.ParseInt(query.Get("user_id"), 10, 64)
 	if err != nil {
 		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("failed to parse user_id. Please send a valid user_id: %v", err))
 		return
 	}
+	limit, err := strconv.ParseInt(query.Get("limit"), 10, 64)
+	if err != nil {
+		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("failed to parse user_id. Please set a valid limit: %v", err))
+		return
+	}
+	if limit != 8 && limit != 9 {
+		limit = 9
+	}
+	offset, err := strconv.ParseInt(query.Get("offset"), 10, 64)
+	if err != nil {
+		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("failed to parse user_id. Please set a valid offset: %v", err))
+		return
+	}
+	if offset%limit > 0 {
+		offset = offset + (limit - (offset % limit))
+	}
 	if  userId == 0 {
 		if err := h.db.Table("blogs").
         Select("blogs.*, Users.name").
         Joins("LEFT JOIN USERS ON BLOGS.USER_ID = USERS.ID").
-        Where("BLOGS.is_active is true AND USERS.is_active is true").
+        Where("BLOGS.is_active is true AND USERS.is_active is true and BLOGS.created_on >= CURRENT_DATE - INTERVAL '3 months' order by BLOGS.created_on desc limit ? offset ? ", limit, offset).
         Find(&blogs).Error; err != nil {
         utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to get blogs: %v", err))
         return
     }
+	if err := h.db.Table("blogs").Select("id").Where("is_active is true and created_on >= CURRENT_DATE - INTERVAL '3 months'").Count(&blogCount).Error; err != nil {
+		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to get blog count. Please try again: %v", err))
+        return
+	}
 		h.getLikesAndComments(blogs, &responseblogs, w)
 	}
 	if userId != 0 {
 		if err := h.db.Table("blogs").
 			Select("blogs.*, Users.name").
 			Joins("LEFT JOIN USERS ON BLOGS.USER_ID = USERS.ID").
-			Where("BLOGS.is_active is true AND USERS.is_active is true AND BLOGS.user_id = ?", userId).
+			Where("BLOGS.is_active is true AND USERS.is_active is true AND BLOGS.user_id = ? and BLOGS.created_on >= CURRENT_DATE - INTERVAL '3 months' order by BLOGS.created_on desc limit ? offset ? ", userId, limit, offset).
 			Find(&blogs).Error; err != nil {
 			utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to get blogs: %v", err))
 			return
 		}
 		if len(blogs) == 0 {
-			utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("no such user found"))
+			utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("no more blogs to show"))
+			return
+		}
+		if err := h.db.Table("blogs").Select("id").Where("is_active is true and created_on >= CURRENT_DATE - INTERVAL '3 months' and user_id = ?", userId).Count(&blogCount).Error; err != nil {
+			utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to get blog count. Please try again: %v", err))
 			return
 		}
 		h.getLikesAndComments(blogs, &responseblogs, w)
 	}
-	utils.SuccessResponse(w, http.StatusOK, responseblogs)
+	response["totalCount"] = blogCount
+	response["message"] = "Blogs fetched successfully"
+	utils.SuccessResponse(w, http.StatusOK, response)
 }
 
 func (h *Handler) getLikesAndComments (blogs []types.BlogWithName, responseblogs *[]types.DetailedBlog, w http.ResponseWriter) {
