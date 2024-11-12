@@ -32,12 +32,9 @@ func (h *Handler) SaveUser(w http.ResponseWriter, r *http.Request) {
             return
         }
 
-        formattedSocials := []map[string]interface{}{}
+        formattedSocials := make(map[string]interface{})
         for _, social := range socials {
-			formattedSocial := make(map[string]interface{})
-			formattedSocial["id"]=social.ID
-            formattedSocial[social.SocialMedia] = social.SocialURL
-            formattedSocials = append(formattedSocials, formattedSocial)
+            formattedSocials[social.SocialMedia] = social.SocialURL
         }
         response := map[string]interface{}{
             "message":   "User already exists",
@@ -76,7 +73,6 @@ func (h *Handler) UpsertSocial(w http.ResponseWriter, r *http.Request) {
         utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("invalid request body: %v", err))
         return
     }
-    var ids []uint
     for _, socialEntry := range reqBody.Socials {
         id, socialMedia, socialURL, err := extractSocialEntry(socialEntry)
         if err != nil {
@@ -98,19 +94,16 @@ func (h *Handler) UpsertSocial(w http.ResponseWriter, r *http.Request) {
                 utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to insert social link: %v", err))
                 return
             }
-            ids = append(ids, reqData.ID) 
         } else {
             if err := h.db.Model(&types.Socials{}).Where("id = ?", id).Updates(&reqData).Error; err != nil {
                 utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to update social link: %v", err))
                 return
             }
-            ids = append(ids, id) 
         }
     }
     utils.SuccessResponse(w, http.StatusOK, map[string]interface{}{
         "user_id": reqBody.UserID,
         "status":  "success",
-        "ids":     ids,
     })
 }
 
@@ -125,7 +118,7 @@ func extractSocialEntry(socialEntry map[string]interface{}) (uint, string, strin
             socialURL, _ = value.(string)
         }
     }
-    if socialMedia == "" || socialURL == "" {
+    if socialMedia == "" {
         return 0, "", "", fmt.Errorf("invalid social media format")
     }
 
