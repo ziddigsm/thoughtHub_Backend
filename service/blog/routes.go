@@ -18,4 +18,6 @@ func (h *Handler) InitializeRoutes(router *mux.Router) {
 	router.HandleFunc("/up_likes", h.UpLikes).Methods("GET")
 	router.HandleFunc("/get_blogs", h.GetBlogs).Methods("GET")
 	router.HandleFunc("/post_comment", h.PostComment).Methods("POST")
+	router.HandleFunc("/search_blogs", h.SearchBlogs).Methods("GET")
+
 }

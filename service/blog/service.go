@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+
 	"github.com/ziddigsm/thoughtHub_Backend/types"
 	"github.com/ziddigsm/thoughtHub_Backend/utils"
 )
@@ -12,7 +13,7 @@ import (
 func (h *Handler) CreateBlog(w http.ResponseWriter, r *http.Request) {
 	var reqBody types.Blogs
 	var likes types.Likes
-	err := r.ParseMultipartForm(5 << 20);
+	err := r.ParseMultipartForm(5 << 20)
 	if err != nil {
 		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("failed to parse form: %v", err))
 		return
@@ -43,10 +44,9 @@ func (h *Handler) CreateBlog(w http.ResponseWriter, r *http.Request) {
 	}
 	response := map[string]interface{}{
 		"message": "Blog created successfully",
-		"blog": reqBody,
+		"blog":    reqBody,
 	}
 	utils.SuccessResponse(w, http.StatusOK, response)
-
 }
 
 func (h *Handler) UpLikes(w http.ResponseWriter, r *http.Request) {
@@ -55,13 +55,13 @@ func (h *Handler) UpLikes(w http.ResponseWriter, r *http.Request) {
 	reqBody.BlogID, _ = strconv.Atoi(query.Get("blog_id"))
 	likes, _ := strconv.Atoi(query.Get("likes"))
 	reqBody.Likes = likes + 1
-	if err:= h.db.Model(&reqBody).Where("blog_id = ?", reqBody.BlogID).Update("likes", reqBody.Likes).Error; err != nil {
+	if err := h.db.Model(&reqBody).Where("blog_id = ?", reqBody.BlogID).Update("likes", reqBody.Likes).Error; err != nil {
 		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to update likes: %v", err))
 		return
 	}
 	response := map[string]interface{}{
 		"message": "Likes incremented successfully",
-		"likes": reqBody.Likes,
+		"likes":   reqBody.Likes,
 		"blog_id": reqBody.BlogID,
 	}
 	utils.SuccessResponse(w, http.StatusOK, response)
@@ -95,19 +95,19 @@ func (h *Handler) GetBlogs(w http.ResponseWriter, r *http.Request) {
 	if offset%limit > 0 {
 		offset = offset + (limit - (offset % limit))
 	}
-	if  userId == 0 {
+	if userId == 0 {
 		if err := h.db.Table("blogs").
-        Select("blogs.*, Users.name").
-        Joins("LEFT JOIN USERS ON BLOGS.USER_ID = USERS.ID").
-        Where("BLOGS.is_active is true AND USERS.is_active is true and BLOGS.created_on >= CURRENT_DATE - INTERVAL '3 months' order by BLOGS.created_on desc limit ? offset ? ", limit, offset).
-        Find(&blogs).Error; err != nil {
-        utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to get blogs: %v", err))
-        return
-    }
-	if err := h.db.Table("blogs").Select("id").Where("is_active is true and created_on >= CURRENT_DATE - INTERVAL '3 months'").Count(&blogCount).Error; err != nil {
-		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to get blog count. Please try again: %v", err))
-        return
-	}
+			Select("blogs.*, Users.name").
+			Joins("LEFT JOIN USERS ON BLOGS.USER_ID = USERS.ID").
+			Where("BLOGS.is_active is true AND USERS.is_active is true and BLOGS.created_on >= CURRENT_DATE - INTERVAL '3 months' order by BLOGS.created_on desc limit ? offset ? ", limit, offset).
+			Find(&blogs).Error; err != nil {
+			utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to get blogs: %v", err))
+			return
+		}
+		if err := h.db.Table("blogs").Select("id").Where("is_active is true and created_on >= CURRENT_DATE - INTERVAL '3 months'").Count(&blogCount).Error; err != nil {
+			utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to get blog count. Please try again: %v", err))
+			return
+		}
 		h.getLikesAndComments(blogs, &responseblogs, w)
 	}
 	if userId != 0 {
@@ -134,7 +134,7 @@ func (h *Handler) GetBlogs(w http.ResponseWriter, r *http.Request) {
 	utils.SuccessResponse(w, http.StatusOK, response)
 }
 
-func (h *Handler) getLikesAndComments (blogs []types.BlogWithName, responseblogs *[]types.DetailedBlog, w http.ResponseWriter) {
+func (h *Handler) getLikesAndComments(blogs []types.BlogWithName, responseblogs *[]types.DetailedBlog, w http.ResponseWriter) {
 	var blogIds []int
 	for i := range blogs {
 		var response types.DetailedBlog
@@ -181,13 +181,75 @@ func (h *Handler) PostComment(w http.ResponseWriter, r *http.Request) {
 		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("failed to parse request: %v", err))
 		return
 	}
-	if err := h.db.Create(&reqBody).Error; err!= nil {
+	if err := h.db.Create(&reqBody).Error; err != nil {
 		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to post comment: %v", err))
 		return
 	}
-	response := map[string] interface{}{
+	response := map[string]interface{}{
 		"message": "Comment posted successfully",
 		"comment": reqBody,
 	}
+	utils.SuccessResponse(w, http.StatusOK, response)
+}
+
+func (h *Handler) SearchBlogs(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	searchQuery := query.Get("q")
+	if searchQuery == "" {
+		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("search query is required"))
+		return
+	}
+
+	limit, err := strconv.ParseInt(query.Get("limit"), 10, 64)
+	if err != nil || limit <= 0 {
+		limit = 10
+	}
+
+	offset, err := strconv.ParseInt(query.Get("offset"), 10, 64)
+	if err != nil {
+		offset = 0
+	}
+
+	var blogs []types.BlogWithName
+	var responseBlogs []types.DetailedBlog
+	response := map[string]interface{}{}
+	response["blogs"] = &responseBlogs
+
+	if err := h.db.Table("blogs").
+		Select("blogs.*, Users.name").
+		Joins("LEFT JOIN USERS ON BLOGS.USER_ID = USERS.ID").
+		Where("BLOGS.is_active is true AND USERS.is_active is true AND (LOWER(BLOGS.title) LIKE LOWER(?) OR LOWER(BLOGS.content) LIKE LOWER(?))",
+			"%"+searchQuery+"%",
+			"%"+searchQuery+"%").
+		Order("BLOGS.created_on desc").
+		Limit(int(limit)).
+		Offset(int(offset)).
+		Find(&blogs).Error; err != nil {
+		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to search blogs: %v", err))
+		return
+	}
+
+	if len(blogs) == 0 {
+		response["message"] = "No blogs found matching your search"
+		response["blogs"] = []types.DetailedBlog{}
+		utils.SuccessResponse(w, http.StatusOK, response)
+		return
+	}
+
+	var totalCount int64
+	if err := h.db.Table("blogs").
+		Joins("LEFT JOIN USERS ON BLOGS.USER_ID = USERS.ID").
+		Where("BLOGS.is_active is true AND USERS.is_active is true AND (LOWER(BLOGS.title) LIKE LOWER(?) OR LOWER(BLOGS.content) LIKE LOWER(?))",
+			"%"+searchQuery+"%",
+			"%"+searchQuery+"%").
+		Count(&totalCount).Error; err != nil {
+		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to get total count: %v", err))
+		return
+	}
+
+	h.getLikesAndComments(blogs, &responseBlogs, w)
+
+	response["totalCount"] = totalCount
+	response["message"] = "Blogs fetched successfully"
 	utils.SuccessResponse(w, http.StatusOK, response)
 }
