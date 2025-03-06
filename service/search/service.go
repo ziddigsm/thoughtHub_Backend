@@ -1,56 +1,72 @@
-package users
+package search
 
 import (
 	"fmt"
 	"net/http"
-	"reflect"
 	"strconv"
-	"strings"
 
 	"github.com/ziddigsm/thoughtHub_Backend/types"
 	"github.com/ziddigsm/thoughtHub_Backend/utils"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
-
 func (h *Handler) SearchBlogs(w http.ResponseWriter, r *http.Request) {
-    query := r.URL.Query()
-    searchTerm := query.Get("search")
-    if searchTerm == "" {
-        utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("search term is required"))
-        return
-    }
+	query := r.URL.Query()
+	searchQuery := query.Get("q")
+	if searchQuery == "" {
+		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("search query is required"))
+		return
+	}
 
-    var blogs []types.BlogWithName
-    var responseblogs []types.DetailedBlog
-    response := map[string]interface{}{}
-    response["blogs"] = &responseblogs
+	limit, err := strconv.ParseInt(query.Get("limit"), 10, 64)
+	if err != nil || limit <= 0 {
+		limit = 10
+	}
 
-    // Search in both title and content using ILIKE for case-insensitive search
-    if err := h.db.Table("blogs").
-        Select("blogs.*, Users.name").
-        Joins("LEFT JOIN USERS ON BLOGS.USER_ID = USERS.ID").
-        Where("BLOGS.is_active is true AND USERS.is_active is true AND (LOWER(BLOGS.title) LIKE LOWER(?) OR LOWER(BLOGS.content) LIKE LOWER(?))", 
-            "%"+searchTerm+"%", 
-            "%"+searchTerm+"%").
-        Order("BLOGS.created_on desc").
-        Find(&blogs).Error; err != nil {
-        utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to search blogs: %v", err))
-        return
-    }
+	offset, err := strconv.ParseInt(query.Get("offset"), 10, 64)
+	if err != nil {
+		offset = 0
+	}
 
-    if len(blogs) == 0 {
-        response["message"] = "No blogs found matching the search criteria"
-        response["totalCount"] = 0
-        utils.SuccessResponse(w, http.StatusOK, response)
-        return
-    }
+	var blogs []types.BlogWithName
+	var responseBlogs []types.DetailedBlog
+	response := map[string]interface{}{}
+	response["blogs"] = &responseBlogs
 
-    // Reuse existing function to get likes and comments
-    h.getLikesAndComments(blogs, &responseblogs, w)
+	if err := h.db.Table("blogs").
+		Select("blogs.*, Users.name").
+		Joins("LEFT JOIN USERS ON BLOGS.USER_ID = USERS.ID").
+		Where("BLOGS.is_active is true AND USERS.is_active is true AND (LOWER(BLOGS.title) LIKE LOWER(?) OR LOWER(BLOGS.content) LIKE LOWER(?))",
+			"%"+searchQuery+"%",
+			"%"+searchQuery+"%").
+		Order("BLOGS.created_on desc").
+		Limit(int(limit)).
+		Offset(int(offset)).
+		Find(&blogs).Error; err != nil {
+		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to search blogs: %v", err))
+		return
+	}
 
-    response["totalCount"] = len(blogs)
-    response["message"] = "Blogs fetched successfully"
-    utils.SuccessResponse(w, http.StatusOK, response)
+	if len(blogs) == 0 {
+		response["message"] = "No blogs found matching your search"
+		response["blogs"] = []types.DetailedBlog{}
+		utils.SuccessResponse(w, http.StatusOK, response)
+		return
+	}
+
+	var totalCount int64
+	if err := h.db.Table("blogs").
+		Joins("LEFT JOIN USERS ON BLOGS.USER_ID = USERS.ID").
+		Where("BLOGS.is_active is true AND USERS.is_active is true AND (LOWER(BLOGS.title) LIKE LOWER(?) OR LOWER(BLOGS.content) LIKE LOWER(?))",
+			"%"+searchQuery+"%",
+			"%"+searchQuery+"%").
+		Count(&totalCount).Error; err != nil {
+		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to get total count: %v", err))
+		return
+	}
+
+	h.blogHandler.GetLikesAndComments(blogs, &responseBlogs, w)
+
+	response["totalCount"] = totalCount
+	response["message"] = "Blogs fetched successfully"
+	utils.SuccessResponse(w, http.StatusOK, response)
 }

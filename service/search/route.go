@@ -1,22 +1,23 @@
-package users
+package search
 
 import (
 	"github.com/gorilla/mux"
+	"github.com/ziddigsm/thoughtHub_Backend/service/blog"
 	"gorm.io/gorm"
 )
 
 type Handler struct {
-	db *gorm.DB
+	db          *gorm.DB
+	blogHandler *blog.Handler
 }
 
-func NewHandler(db *gorm.DB) *Handler {
-	return &Handler{db: db}
+func NewHandler(db *gorm.DB, blogHandler *blog.Handler) *Handler {
+	return &Handler{
+		db:          db,
+		blogHandler: blogHandler,
+	}
 }
 
 func (h *Handler) InitializeRoutes(router *mux.Router) {
-    router.HandleFunc("/create_blog", h.CreateBlog).Methods("POST")
-    router.HandleFunc("/up_likes", h.UpLikes).Methods("GET")
-    router.HandleFunc("/get_blogs", h.GetBlogs).Methods("GET")
-    router.HandleFunc("/post_comment", h.PostComment).Methods("POST")
-    router.HandleFunc("/search_blogs", h.SearchBlogs).Methods("GET")
+	router.HandleFunc("/search_blogs", h.SearchBlogs).Methods("GET")
 }

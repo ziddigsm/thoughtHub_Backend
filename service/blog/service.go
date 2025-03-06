@@ -108,7 +108,7 @@ func (h *Handler) GetBlogs(w http.ResponseWriter, r *http.Request) {
 			utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to get blog count. Please try again: %v", err))
 			return
 		}
-		h.getLikesAndComments(blogs, &responseblogs, w)
+		h.GetLikesAndComments(blogs, &responseblogs, w)
 	}
 	if userId != 0 {
 		if err := h.db.Table("blogs").
@@ -127,14 +127,14 @@ func (h *Handler) GetBlogs(w http.ResponseWriter, r *http.Request) {
 			utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to get blog count. Please try again: %v", err))
 			return
 		}
-		h.getLikesAndComments(blogs, &responseblogs, w)
+		h.GetLikesAndComments(blogs, &responseblogs, w)
 	}
 	response["totalCount"] = blogCount
 	response["message"] = "Blogs fetched successfully"
 	utils.SuccessResponse(w, http.StatusOK, response)
 }
 
-func (h *Handler) getLikesAndComments(blogs []types.BlogWithName, responseblogs *[]types.DetailedBlog, w http.ResponseWriter) {
+func (h *Handler) GetLikesAndComments(blogs []types.BlogWithName, responseblogs *[]types.DetailedBlog, w http.ResponseWriter) {
 	var blogIds []int
 	for i := range blogs {
 		var response types.DetailedBlog
@@ -189,67 +189,5 @@ func (h *Handler) PostComment(w http.ResponseWriter, r *http.Request) {
 		"message": "Comment posted successfully",
 		"comment": reqBody,
 	}
-	utils.SuccessResponse(w, http.StatusOK, response)
-}
-
-func (h *Handler) SearchBlogs(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-	searchQuery := query.Get("q")
-	if searchQuery == "" {
-		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("search query is required"))
-		return
-	}
-
-	limit, err := strconv.ParseInt(query.Get("limit"), 10, 64)
-	if err != nil || limit <= 0 {
-		limit = 10
-	}
-
-	offset, err := strconv.ParseInt(query.Get("offset"), 10, 64)
-	if err != nil {
-		offset = 0
-	}
-
-	var blogs []types.BlogWithName
-	var responseBlogs []types.DetailedBlog
-	response := map[string]interface{}{}
-	response["blogs"] = &responseBlogs
-
-	if err := h.db.Table("blogs").
-		Select("blogs.*, Users.name").
-		Joins("LEFT JOIN USERS ON BLOGS.USER_ID = USERS.ID").
-		Where("BLOGS.is_active is true AND USERS.is_active is true AND (LOWER(BLOGS.title) LIKE LOWER(?) OR LOWER(BLOGS.content) LIKE LOWER(?))",
-			"%"+searchQuery+"%",
-			"%"+searchQuery+"%").
-		Order("BLOGS.created_on desc").
-		Limit(int(limit)).
-		Offset(int(offset)).
-		Find(&blogs).Error; err != nil {
-		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to search blogs: %v", err))
-		return
-	}
-
-	if len(blogs) == 0 {
-		response["message"] = "No blogs found matching your search"
-		response["blogs"] = []types.DetailedBlog{}
-		utils.SuccessResponse(w, http.StatusOK, response)
-		return
-	}
-
-	var totalCount int64
-	if err := h.db.Table("blogs").
-		Joins("LEFT JOIN USERS ON BLOGS.USER_ID = USERS.ID").
-		Where("BLOGS.is_active is true AND USERS.is_active is true AND (LOWER(BLOGS.title) LIKE LOWER(?) OR LOWER(BLOGS.content) LIKE LOWER(?))",
-			"%"+searchQuery+"%",
-			"%"+searchQuery+"%").
-		Count(&totalCount).Error; err != nil {
-		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to get total count: %v", err))
-		return
-	}
-
-	h.getLikesAndComments(blogs, &responseBlogs, w)
-
-	response["totalCount"] = totalCount
-	response["message"] = "Blogs fetched successfully"
 	utils.SuccessResponse(w, http.StatusOK, response)
 }
