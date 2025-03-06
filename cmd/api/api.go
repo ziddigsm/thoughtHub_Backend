@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/ziddigsm/thoughtHub_Backend/service/blog"
 	"github.com/ziddigsm/thoughtHub_Backend/service/menu"
+	"github.com/ziddigsm/thoughtHub_Backend/service/search"
 	"github.com/ziddigsm/thoughtHub_Backend/service/users"
 	"gorm.io/gorm"
 )
@@ -33,9 +34,12 @@ func (s *APIServer) Run() error {
 	menuHandler.InitializeRoutes(path)
 	blogHandler := blog.NewHandler(s.db)
 	blogHandler.InitializeRoutes(path)
+	searchHandler := search.NewHandler(s.db, blogHandler)
+	searchHandler.InitializeRoutes(path)
+
 	enableCors := handlers.CORS(
-		handlers.AllowedOrigins([]string {"http://localhost:3000"}),
-		handlers.AllowedMethods([]string {"GET", "POST", "PUT", "DELETE"}),
+		handlers.AllowedOrigins([]string{"http://localhost:3000"}),
+		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE"}),
 		handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
 	)
 	fmt.Println("Server is running on port", s.address)
