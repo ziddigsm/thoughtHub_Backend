@@ -11,9 +11,9 @@ func main() {
 	if err != nil {
 		panic("Error initializing database")
 	}
-	conn, _ := db.DB();
+	conn, _ := db.DB()
 	defer conn.Close()
-	server := api.Server("localhost:8080", db)
+	server := api.Server("0.0.0.0:8080", db)
 	if err := server.Run(); err != nil {
 		panic(err)
 	}

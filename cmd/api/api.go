@@ -38,7 +38,7 @@ func (s *APIServer) Run() error {
 	searchHandler.InitializeRoutes(path)
 
 	enableCors := handlers.CORS(
-		handlers.AllowedOrigins([]string{"http://localhost:3000", "http://thoughthub.live", "https://thoughthub.live"}),
+		handlers.AllowedOrigins([]string{"http://localhost:3000", "https://thoughthub.live"}),
 		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE"}),
 		handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
 	)
