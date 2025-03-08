@@ -5,7 +5,7 @@ test:
 	@go test -v ./...
 
 run: build
-	@exec ./bin/thoughthub_Backend
+	@exec ./bin/thoughtHub_Backend
 
 migration-create:
 	@migrate create -ext sql -dir cmd/migrate/migrations -format "20060102150405" $(filter-out $@,$(MAKECMDGOALS))
