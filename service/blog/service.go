@@ -120,7 +120,7 @@ func (h *Handler) GetBlogs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if len(blogs) == 0 {
-			utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("no more blogs to show"))
+			utils.ErrorResponse(w, http.StatusNoContent, fmt.Errorf("no blogs related to this user"))
 			return
 		}
 		if err := h.db.Table("blogs").Select("id").Where("is_active is true and created_on >= CURRENT_DATE - INTERVAL '3 months' and user_id = ?", userId).Count(&blogCount).Error; err != nil {
@@ -188,6 +188,43 @@ func (h *Handler) PostComment(w http.ResponseWriter, r *http.Request) {
 	response := map[string]interface{}{
 		"message": "Comment posted successfully",
 		"comment": reqBody,
+	}
+	utils.SuccessResponse(w, http.StatusOK, response)
+}
+
+func (h *Handler) DeleteBlogByID(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	var countofBlogs int64
+	userId, err := strconv.ParseInt(query.Get("userId"), 10, 64)
+	if err != nil {
+		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("invalid userid"))
+		return
+	}
+	blogId, err := strconv.ParseInt(query.Get("blogId"), 10, 64)
+	if err != nil {
+		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("invalid blogid"))
+		return
+	}
+	if userId <= 0 || blogId <= 0 {
+		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("invalid Blog details"))
+		return
+	}
+	if err := h.db.Model(&types.Blogs{}).Where("id = ? and user_id = ? and is_active = true", blogId, userId).Count(&countofBlogs).Error; err != nil {
+		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to get blog count: %v", err))
+		return
+	}
+	if countofBlogs == 0 {
+		utils.ErrorResponse(w, http.StatusUnauthorized, fmt.Errorf("user unauthorized to delete this blog"))
+		return
+	}
+	if err := h.db.Model(&types.Blogs{}).Where("id = ? AND user_id = ?", blogId, userId).Update("is_active", false).Error; err != nil {
+		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to delete blog: %v", err))
+		return
+	}
+
+	response := map[string]interface{}{
+		"message": "Blog deleted successfully",
+		"blogId":  blogId,
 	}
 	utils.SuccessResponse(w, http.StatusOK, response)
 }
