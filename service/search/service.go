@@ -16,6 +16,11 @@ func (h *Handler) SearchBlogs(w http.ResponseWriter, r *http.Request) {
 		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("search query is required"))
 		return
 	}
+	userId, err := strconv.ParseInt(query.Get("user_id"), 10, 64)
+	if err != nil {
+		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("valid user is required"))
+		return
+	}
 
 	limit, err := strconv.ParseInt(query.Get("limit"), 10, 64)
 	if err != nil || limit <= 0 {
@@ -23,7 +28,7 @@ func (h *Handler) SearchBlogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	offset, err := strconv.ParseInt(query.Get("offset"), 10, 64)
-	if err != nil {
+	if err != nil || offset < 0 {
 		offset = 0
 	}
 
@@ -32,16 +37,19 @@ func (h *Handler) SearchBlogs(w http.ResponseWriter, r *http.Request) {
 	response := map[string]interface{}{}
 	response["blogs"] = &responseBlogs
 
-	if err := h.db.Table("blogs").
-		Select("blogs.*, Users.name").
+	dbQuery := h.db.Table("blogs").Select("blogs.*, Users.name").
 		Joins("LEFT JOIN USERS ON BLOGS.USER_ID = USERS.ID").
 		Where("BLOGS.is_active is true AND USERS.is_active is true AND (LOWER(BLOGS.title) LIKE LOWER(?) OR LOWER(BLOGS.content) LIKE LOWER(?))",
 			"%"+searchQuery+"%",
 			"%"+searchQuery+"%").
 		Order("BLOGS.created_on desc").
 		Limit(int(limit)).
-		Offset(int(offset)).
-		Find(&blogs).Error; err != nil {
+		Offset(int(offset))
+
+	if userId != 0 {
+		dbQuery = dbQuery.Where("BLOGS.USER_ID = ?", userId)
+	}
+	if err := dbQuery.Find(&blogs).Error; err != nil {
 		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to search blogs: %v", err))
 		return
 	}
