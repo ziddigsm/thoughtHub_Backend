@@ -21,5 +21,5 @@ func NewHandler(db *gorm.DB, blogHandler *blog.Handler) *Handler {
 }
 
 func (h *Handler) InitializeRoutes(router *mux.Router) {
-    router.HandleFunc("/search_blogs", utils.ApiKeyMiddleware(h.SearchBlogs)).Methods("GET")
+    router.HandleFunc("/search_blogs", utils.ApiKeyMiddleware(utils.RateLimitMiddleware(h.SearchBlogs))).Methods("GET")
 }

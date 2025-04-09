@@ -5,7 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
+	"sync"
+	"time"
 
+	"golang.org/x/time/rate"
 )
 
 func ParseRequest(r *http.Request, reqBody interface{}) error {
@@ -32,23 +36,50 @@ func UnmarshalJson(data []byte, res map[string]interface{}) error {
 	return nil
 }
 
+var rateLimiterMap sync.Map
+
+func getRateLimit(apiKey string) *rate.Limiter {
+	limiterMap, _ := rateLimiterMap.LoadOrStore(apiKey, rate.NewLimiter(15, 23)) //this is the burst(23) and rate limit(15)
+	limiter := limiterMap.(*rate.Limiter)
+	return limiter
+}
+
+func RateLimitMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		apiKey := r.Header.Get("X-API-Key")
+		if apiKey == "" {
+			ErrorResponse(w, http.StatusUnauthorized,
+				fmt.Errorf("user not authorized"))
+			return
+		}
+		limiter := getRateLimit(apiKey)
+
+		if !limiter.Allow() {
+			ErrorResponse(w, http.StatusTooManyRequests,
+				fmt.Errorf("too many requests. please try again later"))
+			return
+		}
+		next.ServeHTTP(w, r)
+	}
+}
 
 func ApiKeyMiddleware(next http.HandlerFunc) http.HandlerFunc {
-    return func(w http.ResponseWriter, r *http.Request) {
-        apiKey := r.Header.Get("X-API-Key")
-        if apiKey == "" {
-            ErrorResponse(w, http.StatusUnauthorized, 
-                        fmt.Errorf("API key is missing"))
-            return
-        }
+	return func(w http.ResponseWriter, r *http.Request) {
+		apiKey := r.Header.Get("X-API-Key")
+		if apiKey == "" {
+			ErrorResponse(w, http.StatusUnauthorized,
+				fmt.Errorf("user not authorized"))
+			return
+		}
+		currentDate := time.Now().Weekday()
+		apiKeyEnv := "API_KEY_" + strconv.Itoa(int(currentDate))
+		validApiKey := os.Getenv(apiKeyEnv)
+		if apiKey != validApiKey {
+			ErrorResponse(w, http.StatusUnauthorized,
+				fmt.Errorf("user unauthorized"))
+			return
+		}
 
-        validApiKey := os.Getenv("API_KEY")
-        if apiKey != validApiKey {
-            ErrorResponse(w, http.StatusUnauthorized, 
-                        fmt.Errorf("invalid API key"))
-            return
-        }
-
-        next.ServeHTTP(w, r)
-    }
+		next.ServeHTTP(w, r)
+	}
 }
