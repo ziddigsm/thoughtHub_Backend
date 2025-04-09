@@ -16,5 +16,5 @@ func NewHandler(db *gorm.DB) *Handler {
 }
 
 func (h *Handler) InitializeRoutes(router *mux.Router) {
-    router.HandleFunc("/get_menu", utils.ApiKeyMiddleware(h.GetMenu)).Methods("GET")
+    router.HandleFunc("/get_menu", utils.ApiKeyMiddleware(utils.RateLimitMiddleware(h.GetMenu))).Methods("GET")
 }
