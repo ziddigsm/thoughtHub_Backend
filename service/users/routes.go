@@ -3,6 +3,8 @@ package users
 import (
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
+	    "github.com/ziddigsm/thoughtHub_Backend/utils"
+
 )
 
 type Handler struct {
@@ -14,9 +16,9 @@ func NewHandler(db *gorm.DB) *Handler {
 }
 
 func (h *Handler) InitializeRoutes(router *mux.Router) {
-	router.HandleFunc("/get_users", h.GetUsers).Methods("GET")
-	router.HandleFunc("/create_user", h.SaveUser).Methods("POST")
-	router.HandleFunc("/create_social", h.UpsertSocial).Methods("POST")
-	router.HandleFunc("/save_about", h.SaveAbout).Methods("POST")
-	router.HandleFunc("/delete_user", h.DeleteUser).Methods("DELETE")
+    router.HandleFunc("/get_users", utils.ApiKeyMiddleware(h.GetUsers)).Methods("GET")
+    router.HandleFunc("/create_user", utils.ApiKeyMiddleware(h.SaveUser)).Methods("POST")
+    router.HandleFunc("/create_social", utils.ApiKeyMiddleware(h.UpsertSocial)).Methods("POST")
+    router.HandleFunc("/save_about", utils.ApiKeyMiddleware(h.SaveAbout)).Methods("POST")
+    router.HandleFunc("/delete_user", utils.ApiKeyMiddleware(h.DeleteUser)).Methods("DELETE")
 }

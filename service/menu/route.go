@@ -3,6 +3,8 @@ package menu
 import (
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
+	"github.com/ziddigsm/thoughtHub_Backend/utils"
+
 )
 
 type Handler struct {
@@ -14,5 +16,5 @@ func NewHandler(db *gorm.DB) *Handler {
 }
 
 func (h *Handler) InitializeRoutes(router *mux.Router) {
-	router.HandleFunc("/get_menu", h.GetMenu).Methods("GET")
+    router.HandleFunc("/get_menu", utils.ApiKeyMiddleware(h.GetMenu)).Methods("GET")
 }

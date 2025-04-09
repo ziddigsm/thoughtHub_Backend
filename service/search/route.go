@@ -4,6 +4,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/ziddigsm/thoughtHub_Backend/service/blog"
 	"gorm.io/gorm"
+	"github.com/ziddigsm/thoughtHub_Backend/utils"
+
 )
 
 type Handler struct {
@@ -19,5 +21,5 @@ func NewHandler(db *gorm.DB, blogHandler *blog.Handler) *Handler {
 }
 
 func (h *Handler) InitializeRoutes(router *mux.Router) {
-	router.HandleFunc("/search_blogs", h.SearchBlogs).Methods("GET")
+    router.HandleFunc("/search_blogs", utils.ApiKeyMiddleware(h.SearchBlogs)).Methods("GET")
 }

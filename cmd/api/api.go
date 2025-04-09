@@ -40,7 +40,7 @@ func (s *APIServer) Run() error {
 	enableCors := handlers.CORS(
 		handlers.AllowedOrigins([]string{"http://localhost:3000", "https://thoughthub.live"}),
 		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE"}),
-		handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
+		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "X-API-Key"}),
 	)
 	fmt.Println("Server is running on port", s.address)
 	return http.ListenAndServe(s.address, enableCors(router))

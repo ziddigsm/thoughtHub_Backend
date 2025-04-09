@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+
 )
 
 func ParseRequest(r *http.Request, reqBody interface{}) error {
@@ -28,4 +30,25 @@ func UnmarshalJson(data []byte, res map[string]interface{}) error {
 		return fmt.Errorf("failed to unmarshal json: %v", err)
 	}
 	return nil
+}
+
+
+func ApiKeyMiddleware(next http.HandlerFunc) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        apiKey := r.Header.Get("X-API-Key")
+        if apiKey == "" {
+            ErrorResponse(w, http.StatusUnauthorized, 
+                        fmt.Errorf("API key is missing"))
+            return
+        }
+
+        validApiKey := os.Getenv("API_KEY")
+        if apiKey != validApiKey {
+            ErrorResponse(w, http.StatusUnauthorized, 
+                        fmt.Errorf("invalid API key"))
+            return
+        }
+
+        next.ServeHTTP(w, r)
+    }
 }
