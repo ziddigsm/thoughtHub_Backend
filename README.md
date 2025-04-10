@@ -58,6 +58,76 @@ thoughtHub_Backend/
 
 ---
 
+## 🗄️ Database Schema(ERD)
+
+Users
++------------+
+| id         |
+| mail       |
+| name       |
+| username   |
+| is_active  |
+| created_on |
+| updated_on |
++------------+
+     |
+     | 1
+     |--------------------< Blogs
+     |                    +------------+
+     |                    | id         |
+     |                    | user_id    |
+     |                    | title      |
+     |                    | content    |
+     |                    | blog_image |
+     |                    | is_active  |
+     |                    | created_on |
+     |                    | updated_on |
+     |                    +------------+
+     |                          |
+     |                          | 1
+     |                          |--------------------< Likes
+     |                          |                    +------------+
+     |                          |                    | id         |
+     |                          |                    | blog_id    |
+     |                          |                    | likes      |
+     |                          |                    | created_on |
+     |                          |                    | updated_on |
+     |                          |                    +------------+
+     |                          |
+     |                          | 1
+     |                          |--------------------< Comments
+     |                                               +------------+
+     |                                               | id         |
+     |                                               | user_id    |
+     |                                               | blog_id    |
+     |                                               | comment    |
+     |                                               | is_active  |
+     |                                               | created_on |
+     |                                               | updated_on |
+     |                                               +------------+
+     |
+     | 1
+     |--------------------< Socials
+                          +----------------+
+                          | id             |
+                          | user_id        |
+                          | social_media   |
+                          | social_url     |
+                          | is_active      |
+                          | created_on     |
+                          | updated_on     |
+                          +----------------+
+
+Menu
++------------+
+| id         |
+| options    |
+| is_active  |
+| is_navbar  |
+| created_on |
+| updated_on |
++------------+
+
 ## 🛠️ Prerequisites
 
 - Go **1.23.1** or higher  
