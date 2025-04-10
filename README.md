@@ -23,18 +23,35 @@ A Go-based backend service for ThoughtHub, a blogging platform with features for
 thoughtHub_Backend/
 ├── cmd/
 │   ├── api/
-│   │   └── api.go          # Main API server setup
+│   │   └── api.go          # Main API redirection setup
+    ├── migrate/
+        ├── migrations/
+│   │       └── migration files.sql          # Main Migrations setup
+│   │       └── main.go
+│   │   └── main.go
+├── db/
+│   └── db.go          # Main DB setup  
 ├── service/
 │   ├── blog/
 │   │   └── routes.go       # Blog service endpoints
+│   │   └── service.go      # Blog service business logic
 │   ├── search/
-│   │   └── route.go        # Search functionality
-│   ├── users/              # User management
-│   └── menu/               # Menu-related endpoints
+│   │   └── route.go        # Search service endpoints
+│   │   └── service.go      # Search service business logic
+│   ├── users/              
+│   │   └── route.go        # User service endpoints
+│   │   └── service.go      # User service business logic
+│   └── menu/               
+│   │   └── route.go        # Menu service endpoints
+│   │   └── service.go      # Menu service business logic
+├── types/
+│   └── types.go          # Database tables/struct definition  
 ├── utils/
 │   └── utils.go            # Utility functions and middleware
 ├── .env                    # Environment variables
 └── go.mod                  # Go module dependencies
+└── go.sum                  # Go module containers
+└── Makefile                # Make commands
 ```
 
 ---
@@ -115,11 +132,17 @@ API_KEY_6=your-api-key
 
 ### 🔍 Search Service
 
-- `GET /search_blogs` - Search blogs by keywords  
+- `GET /search_blogs` - Search blogs by keywords
+
+### 👥 User Management Services
+
+- `POST /create_user` - Create a new user or enable logging for an existing user
+- `POST /create_social` - Create records for maintaining social media urls for each user
+- `POST /save_about` - Upsert about data for each user
+- `DELETE /delete_user` - Soft Delete a user from the database. 
 
 ### 👥 Additional Services
 
-- User management endpoints  
 - Menu-related endpoints  
 
 ---
@@ -157,7 +180,8 @@ CORS is enabled for:
 - `github.com/gorilla/handlers` - CORS and logging middleware  
 - `gorm.io/gorm` - ORM library for database operations  
 - `golang.org/x/time/rate` - Rate limiting implementation  
-- `github.com/joho/godotenv` - Environment variable management  
+- `github.com/joho/godotenv` - Environment variable management
+- `github.com/lib/pq` - PostgreSQL Library
 
 ---
 
@@ -184,8 +208,9 @@ Standardized error responses in JSON format:
 
 ## 🔮 Future Improvements
 
-- Enhanced authentication with JWT  
-- Improved search with filtering options  
+- Enhanced authentication with JWT
+- Implement categorization for blogs
+- Improved search with filtering options
 - Caching layer for frequently accessed data  
 - Analytics for tracking API usage  
 
