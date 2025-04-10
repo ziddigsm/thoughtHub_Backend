@@ -60,6 +60,7 @@ thoughtHub_Backend/
 
 ## 🗄️ Database Schema(ERD)
 
+```plaintext
 Users
 +------------+
 | id         |
@@ -127,6 +128,7 @@ Menu
 | created_on |
 | updated_on |
 +------------+
+```
 
 ## 🛠️ Prerequisites
 
