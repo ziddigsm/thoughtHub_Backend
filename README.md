@@ -15,7 +15,7 @@ A Go-based backend service for ThoughtHub, a blogging platform with features for
 - **User Management**: Handle user registration and authentication  
 - **CORS Support**: Configured for cross-origin requests
 - **Structured Success/Error Handling**: Consistent success/error responses across all endpoints
-- **Database Integration**: Database Integration
+- **Database Integration**: Seamless database integration between Go and PostgreSQL with GORM
 
 ---
 
