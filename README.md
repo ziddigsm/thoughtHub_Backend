@@ -13,7 +13,9 @@ A Go-based backend service for ThoughtHub, a blogging platform with features for
 - **API Key Authentication**: Rotating daily API keys for secure access  
 - **Rate Limiting**: Prevents API abuse with configurable request limits  
 - **User Management**: Handle user registration and authentication  
-- **CORS Support**: Configured for cross-origin requests  
+- **CORS Support**: Configured for cross-origin requests
+- **Structured Success/Error Handling**: Consistent success/error responses across all endpoints
+- **Database Integration**: Database Integration
 
 ---
 
@@ -215,5 +217,45 @@ Standardized error responses in JSON format:
 - Analytics for tracking API usage  
 
 ---
+
+graph TD
+    Client[Client Applications] -->|HTTP Requests| CORS[CORS Middleware]
+    CORS --> APIKey[API Key Middleware]
+    APIKey --> RateLimit[Rate Limit Middleware]
+    RateLimit --> Router[Gorilla Mux Router]
+    
+    subgraph "API Layer (/api/v1)"
+        Router --> UserRoutes[User Routes]
+        Router --> BlogRoutes[Blog Routes]
+        Router --> MenuRoutes[Menu Routes]
+        Router --> SearchRoutes[Search Routes]
+    end
+    
+    subgraph "Service Layer"
+        UserRoutes --> UserService[User Service]
+        BlogRoutes --> BlogService[Blog Service]
+        MenuRoutes --> MenuService[Menu Service]
+        SearchRoutes --> SearchService[Search Service]
+        
+        SearchService -.->|Depends on| BlogService
+    end
+    
+    subgraph "Data Layer"
+        UserService --> DB[(PostgreSQL Database)]
+        BlogService --> DB
+        MenuService --> DB
+        SearchService --> DB
+    end
+    
+    subgraph "Utility Layer"
+        Utils[Utility Functions]
+        ErrorHandling[Error Handling]
+        ResponseFormatting[Response Formatting]
+        
+        UserService -.->|Uses| Utils
+        BlogService -.->|Uses| Utils
+        MenuService -.->|Uses| Utils
+        SearchService -.->|Uses| Utils
+    end
 
 © 2025 ThoughtHub Backend
