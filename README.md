@@ -282,6 +282,7 @@ Standardized error responses in JSON format:
 
 ## 🔮 Future Improvements
 
+- Refine Likes and Comments section and enable public access
 - Enhanced authentication with JWT
 - Implement categorization for blogs
 - Improved search with filtering options
