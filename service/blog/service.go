@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/ziddigsm/thoughtHub_Backend/types"
 	"github.com/ziddigsm/thoughtHub_Backend/utils"
@@ -225,6 +226,60 @@ func (h *Handler) DeleteBlogByID(w http.ResponseWriter, r *http.Request) {
 	response := map[string]interface{}{
 		"message": "Blog deleted successfully",
 		"blogId":  blogId,
+	}
+	utils.SuccessResponse(w, http.StatusOK, response)
+}
+
+func (h *Handler) UpdateBlog(w http.ResponseWriter, r *http.Request) {
+	var reqBody types.Blogs
+	err := r.ParseMultipartForm(5 << 20)
+	if err != nil {
+		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("failed to parse form: %v", err))
+		return
+	}
+	reqBody.UserID, err = strconv.Atoi(r.FormValue("user_id"))
+	if err != nil {
+		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("failed to parse user_id: %v", err))
+		return
+	}
+	reqBody.ID, err = strconv.Atoi(r.FormValue("blog_id"))
+	if err != nil {
+		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("failed to parse blog_id: %v", err))
+		return
+	}
+	reqBody.Title = r.FormValue("title")
+	reqBody.Content = r.FormValue("content")
+	file, _, err := r.FormFile("blog_image")
+	if err == nil {
+		defer file.Close()
+		reqBody.Blog_image, err = io.ReadAll(file)
+		if err != nil {
+			utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("failed to get file: %v", err))
+			return
+		}
+	}
+	fieldsToBeUpdated := map[string]interface{}{}
+	if reqBody.Title != "" {
+		fieldsToBeUpdated["title"] = reqBody.Title
+	}
+	if reqBody.Content != "" {
+		fieldsToBeUpdated["content"] = reqBody.Content
+	}
+	if reqBody.Blog_image != nil {
+		fieldsToBeUpdated["blog_image"] = reqBody.Blog_image
+	}
+	if len(fieldsToBeUpdated) == 0 {
+		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("no fields to update"))
+		return
+	}
+	fieldsToBeUpdated["updated_on"] = time.Now()
+	if err := h.db.Model(&types.Blogs{}).Where("id = ?", reqBody.ID).Updates(fieldsToBeUpdated).Error; err != nil {
+		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to create blog: %v", err))
+		return
+	}
+	response := map[string]interface{}{
+		"message": "Blog created successfully",
+		"blog":    reqBody,
 	}
 	utils.SuccessResponse(w, http.StatusOK, response)
 }
