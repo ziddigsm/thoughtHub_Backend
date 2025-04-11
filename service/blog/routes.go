@@ -21,4 +21,5 @@ func (h *Handler) InitializeRoutes(router *mux.Router) {
 	router.HandleFunc("/get_blogs", utils.ApiKeyMiddleware(utils.RateLimitMiddleware(h.GetBlogs))).Methods("GET")
 	router.HandleFunc("/post_comment", utils.ApiKeyMiddleware(utils.RateLimitMiddleware(h.PostComment))).Methods("POST")
 	router.HandleFunc("/delete_blog_by_id", utils.ApiKeyMiddleware(utils.RateLimitMiddleware(h.DeleteBlogByID))).Methods("DELETE")
+	router.HandleFunc("/update_blog", utils.ApiKeyMiddleware(utils.RateLimitMiddleware(h.UpdateBlog))).Methods("PUT")
 }
