@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/ziddigsm/thoughtHub_Backend/service/blog"
 	"github.com/ziddigsm/thoughtHub_Backend/service/menu"
+	"github.com/ziddigsm/thoughtHub_Backend/service/recommendation"
 	"github.com/ziddigsm/thoughtHub_Backend/service/search"
 	"github.com/ziddigsm/thoughtHub_Backend/service/users"
 	"gorm.io/gorm"
@@ -28,14 +29,21 @@ func Server(address string, db *gorm.DB) *APIServer {
 func (s *APIServer) Run() error {
 	router := mux.NewRouter()
 	path := router.PathPrefix("/api/v1").Subrouter()
+	
 	userHandler := users.NewHandler(s.db)
 	userHandler.InitializeRoutes(path)
+	
 	menuHandler := menu.NewHandler(s.db)
 	menuHandler.InitializeRoutes(path)
+	
 	blogHandler := blog.NewHandler(s.db)
 	blogHandler.InitializeRoutes(path)
+	
 	searchHandler := search.NewHandler(s.db, blogHandler)
 	searchHandler.InitializeRoutes(path)
+	
+	recommendationHandler := recommendation.NewHandler(s.db)
+	recommendationHandler.InitializeRoutes(path)
 
 	enableCors := handlers.CORS(
 		handlers.AllowedOrigins([]string{"http://localhost:3000", "https://thoughthub.live"}),
