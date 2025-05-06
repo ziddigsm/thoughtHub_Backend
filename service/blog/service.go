@@ -13,7 +13,6 @@ import (
 
 func (h *Handler) CreateBlog(w http.ResponseWriter, r *http.Request) {
 	var reqBody types.Blogs
-	var likes types.Likes
 	err := r.ParseMultipartForm(5 << 20)
 	if err != nil {
 		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("failed to parse form: %v", err))
@@ -38,11 +37,7 @@ func (h *Handler) CreateBlog(w http.ResponseWriter, r *http.Request) {
 		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to create blog: %v", err))
 		return
 	}
-	likes.BlogID = reqBody.ID
-	if err := h.db.Create(&likes).Error; err != nil {
-		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to create like table: %v", err))
-		return
-	}
+
 	response := map[string]interface{}{
 		"message": "Blog created successfully",
 		"blog":    reqBody,
@@ -54,15 +49,14 @@ func (h *Handler) UpLikes(w http.ResponseWriter, r *http.Request) {
 	var reqBody types.Likes
 	query := r.URL.Query()
 	reqBody.BlogID, _ = strconv.Atoi(query.Get("blog_id"))
-	likes, _ := strconv.Atoi(query.Get("likes"))
-	reqBody.Likes = likes + 1
-	if err := h.db.Model(&reqBody).Where("blog_id = ?", reqBody.BlogID).Update("likes", reqBody.Likes).Error; err != nil {
+	reqBody.UserID, _ = strconv.Atoi(query.Get("user_id"))
+	if err := h.db.Create(&reqBody).Error; err != nil {
 		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to update likes: %v", err))
 		return
 	}
 	response := map[string]interface{}{
 		"message": "Likes incremented successfully",
-		"likes":   reqBody.Likes,
+		"user_id": reqBody.UserID,
 		"blog_id": reqBody.BlogID,
 	}
 	utils.SuccessResponse(w, http.StatusOK, response)
@@ -143,14 +137,23 @@ func (h *Handler) GetLikesAndComments(blogs []types.BlogWithName, responseblogs 
 		blogIds = append(blogIds, blogs[i].ID)
 		*responseblogs = append(*responseblogs, response)
 	}
-	var likes []types.Likes
-	if err := h.db.Where("blog_id in (?)", blogIds).Find(&likes).Error; err != nil {
-		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to get likes: %v", err))
+	type LikeCount struct {
+		BlogID int64 `gorm:"column:blog_id"`
+		Count  int64 `gorm:"column:count"`
+	}
+	var likeCounts []LikeCount
+	if err := h.db.
+		Table("likes").
+		Select("blog_id, COUNT(*) as count").
+		Where("blog_id IN ?", blogIds).
+		Group("blog_id").
+		Find(&likeCounts).Error; err != nil {
+		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to get like counts: %v", err))
 		return
 	}
-	likesPerBlogId := make(map[int]int)
-	for i := range likes {
-		likesPerBlogId[likes[i].BlogID] = likes[i].Likes
+	likesPerBlogId := make(map[int64]int64)
+	for _, record := range likeCounts {
+		likesPerBlogId[int64(record.BlogID)] = int64(record.Count)
 	}
 	var comments []struct {
 		types.Comments
@@ -170,7 +173,8 @@ func (h *Handler) GetLikesAndComments(blogs []types.BlogWithName, responseblogs 
 		commentsPerBlogId[comments[i].BlogID] = append(commentsPerBlogId[comments[i].BlogID], commentsResponse)
 	}
 	for i := range *responseblogs {
-		(*responseblogs)[i].Likes = likesPerBlogId[(*responseblogs)[i].BlogData.ID]
+		id := int64((*responseblogs)[i].BlogData.ID)
+		(*responseblogs)[i].Likes = likesPerBlogId[id]
 		(*responseblogs)[i].Comments = commentsPerBlogId[(*responseblogs)[i].BlogData.ID]
 	}
 }
@@ -280,6 +284,55 @@ func (h *Handler) UpdateBlog(w http.ResponseWriter, r *http.Request) {
 	response := map[string]interface{}{
 		"message": "Blog created successfully",
 		"blog":    reqBody,
+	}
+	utils.SuccessResponse(w, http.StatusOK, response)
+}
+
+func (h *Handler) HasLiked(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	var reqBody types.Likes
+	reqBody.BlogID, _ = strconv.Atoi(query.Get("blog_id"))
+	reqBody.UserID, _ = strconv.Atoi(query.Get("user_id"))
+	if reqBody.BlogID <= 0 || reqBody.UserID <= 0 {
+		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("invalid blog_id or user_id"))
+		return
+	}
+	var count int64
+	if err := h.db.Model(&types.Likes{}).
+		Where("blog_id = ? AND user_id = ?", reqBody.BlogID, reqBody.UserID).
+		Count(&count).Error; err != nil {
+		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to check likes: %v", err))
+		return
+	}
+	response := map[string]interface{}{
+		"has_liked": count > 0,
+	}
+	utils.SuccessResponse(w, http.StatusOK, response)
+}
+
+func (h *Handler) DownLikes(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	var reqBody types.Likes
+	reqBody.BlogID, _ = strconv.Atoi(query.Get("blog_id"))
+	reqBody.UserID, _ = strconv.Atoi(query.Get("user_id"))
+	if reqBody.BlogID <= 0 || reqBody.UserID <= 0 {
+		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("invalid blog_id or user_id"))
+		return
+	}
+	result := h.db.Where("blog_id = ? AND user_id = ?", reqBody.BlogID, reqBody.UserID).Delete(&types.Likes{})
+	if result.Error != nil {
+		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to decrement likes: %v", result.Error))
+		return
+	}
+	if result.RowsAffected == 0 {
+		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("like not found for the given blog_id and user_id"))
+		return
+	}
+
+	response := map[string]interface{}{
+		"message": "Likes decremented successfully",
+		"user_id": reqBody.UserID,
+		"blog_id": reqBody.BlogID,
 	}
 	utils.SuccessResponse(w, http.StatusOK, response)
 }
