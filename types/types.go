@@ -47,14 +47,14 @@ type Comments struct {
 type Likes struct {
 	ID        int       `gorm:"primaryKey;autoIncrement" json:"-"`
 	BlogID    int       `gorm:"not null" json:"blog_id"`
-	Likes     int       `gorm:"default:0" json:"likes"`
+	UserID    int       `gorm:"default:0" json:"likes"`
 	CreatedOn time.Time `gorm:"autoCreateTime" json:"-"`
 	UpdatedOn time.Time `gorm:"autoUpdateTime" json:"-"`
 }
 
 type DetailedBlog struct {
 	BlogData BlogWithName       `json:"blog_data"`
-	Likes    int                `gorm:"default:0" json:"likes"`
+	Likes    int64              `gorm:"default:0" json:"likes"`
 	Comments []DetailedComments `gorm:"foreignKey:BlogID" json:"comments"`
 }
 
@@ -92,7 +92,7 @@ type RecommendationRequest struct {
 
 type BlogRecommendation struct {
 	BlogData        BlogWithName       `json:"blog_data"`
-	Likes           int                `json:"likes"`
+	Likes           int64              `json:"likes"`
 	Comments        []DetailedComments `json:"comments,omitempty"`
 	SimilarityScore float64            `json:"similarity_score"`
 }
