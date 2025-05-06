@@ -84,3 +84,19 @@ type LinkedSocials struct {
 	Socials  []map[string]interface{} `json:"socials"`
 	IsActive bool                     `json:"is_active"`
 }
+
+type RecommendationRequest struct {
+	Text   string `json:"text"`
+	BlogID int    `json:"user_id"`
+}
+
+type BlogRecommendation struct {
+	BlogData        BlogWithName       `json:"blog_data"`
+	Likes           int                `json:"likes"`
+	Comments        []DetailedComments `json:"comments,omitempty"`
+	SimilarityScore float64            `json:"similarity_score"`
+}
+
+type RecommendationResponse struct {
+	Recommendations []BlogRecommendation `json:"recommendations"`
+}

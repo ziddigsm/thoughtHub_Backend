@@ -12,6 +12,7 @@ require (
 
 require (
 	github.com/armon/go-radix v1.0.0 // indirect
+	github.com/bbalet/stopwords v0.0.0-20201116143645-4eec6c2d5d24
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/james-bowman/nlp v0.0.0-20210511120306-26d441fa0ded // indirect
 	github.com/james-bowman/sparse v0.0.0-20210729090128-1e6c7dd483e9 // indirect
@@ -36,5 +37,5 @@ require (
 	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/time v0.11.0
 	gorm.io/driver/postgres v1.5.9
-	gorm.io/gorm v1.25.12
+	gorm.io/gorm v1.26.0
 )

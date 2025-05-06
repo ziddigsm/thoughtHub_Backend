@@ -47,7 +47,6 @@ func getRateLimit(apiKey string) *rate.Limiter {
 func RateLimitMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		apiKey := r.Header.Get("X-API-Key")
-		fmt.Printf(apiKey)
 		if apiKey == "" {
 			ErrorResponse(w, http.StatusUnauthorized,
 				fmt.Errorf("user not authorized"))
@@ -67,7 +66,6 @@ func RateLimitMiddleware(next http.HandlerFunc) http.HandlerFunc {
 func ApiKeyMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		apiKey := r.Header.Get("X-API-Key")
-		fmt.Printf(apiKey)
 		if apiKey == "" {
 			ErrorResponse(w, http.StatusUnauthorized,
 				fmt.Errorf("user not authorized"))
