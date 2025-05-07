@@ -23,4 +23,5 @@ func (h *Handler) InitializeRoutes(router *mux.Router) {
 	router.HandleFunc("/delete_blog_by_id", utils.ApiKeyMiddleware(utils.RateLimitMiddleware(h.DeleteBlogByID))).Methods("DELETE")
 	router.HandleFunc("/update_blog", utils.ApiKeyMiddleware(utils.RateLimitMiddleware(h.UpdateBlog))).Methods("PUT")
 	router.HandleFunc("/liked", utils.ApiKeyMiddleware(utils.RateLimitMiddleware(h.HasLiked))).Methods("GET")
+	router.HandleFunc(("/like_count"), utils.ApiKeyMiddleware(utils.RateLimitMiddleware(h.GetLikeCount))).Methods("GET")
 }

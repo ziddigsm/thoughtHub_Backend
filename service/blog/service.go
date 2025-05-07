@@ -336,3 +336,25 @@ func (h *Handler) DownLikes(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.SuccessResponse(w, http.StatusOK, response)
 }
+
+func (h *Handler) GetLikeCount(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	blogId, err := strconv.Atoi(query.Get("blog_id"))
+	if err != nil || blogId <= 0 {
+		utils.ErrorResponse(w, http.StatusBadRequest, fmt.Errorf("invalid blog_id"))
+		return
+	}
+
+	var count int64
+	if err := h.db.Model(&types.Likes{}).
+		Where("blog_id = ?", blogId).
+		Count(&count).Error; err != nil {
+		utils.ErrorResponse(w, http.StatusInternalServerError, fmt.Errorf("failed to get like count: %v", err))
+		return
+	}
+
+	response := map[string]interface{}{
+		"like_count": count,
+	}
+	utils.SuccessResponse(w, http.StatusOK, response)
+}
