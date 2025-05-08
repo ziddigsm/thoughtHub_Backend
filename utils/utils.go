@@ -73,6 +73,7 @@ func ApiKeyMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		}
 		currentDate := time.Now().Weekday()
 		apiKeyEnv := "API_KEY_" + strconv.Itoa(int(currentDate))
+		fmt.Printf(apiKeyEnv, currentDate)
 		validApiKey := os.Getenv(apiKeyEnv)
 		if apiKey != validApiKey {
 			ErrorResponse(w, http.StatusUnauthorized,
