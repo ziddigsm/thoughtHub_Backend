@@ -87,11 +87,11 @@ func (h *Handler) GetSimilarBlogs(req types.RecommendationRequest) (types.Recomm
 		numRecommendations = len(blogIndices)
 	}
 
-	threshold := 0.3
+	threshold := 0.2
 	selectedBlogs := []types.BlogWithName{}
 	for _, idx := range blogIndices {
 		if similarities[idx] < threshold {
-			break
+			continue
 		}
 		selectedBlogs = append(selectedBlogs, blogs[idx])
 		if len(selectedBlogs) == numRecommendations {
